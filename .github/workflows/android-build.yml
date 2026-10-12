@@ -1,0 +1,46 @@
+name: Gerar APK de Produção
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar Código do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js (Versão Estável)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Configurar Java 17 (Versão Estável)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Instalar Dependências do Projeto
+        run: |
+          npm install
+
+      - name: Gerar Pastas Nativas do Android
+        run: npx expo prebuild --platform android --clean
+
+      - name: Compilar APK (Forçando o Bundle de JavaScript)
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-build-cache --stacktrace
+
+      - name: Salvar o APK pronto para Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: aplicativo-prontoservice
+          path: android/app/build/outputs/apk/release/app-release.apk
